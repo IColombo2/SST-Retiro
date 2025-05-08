@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>WebGIS com Ortofoto</title>
+
+  <link rel="stylesheet" href="css/leaflet.css">
+  <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+  <link rel="stylesheet" href="css/qgis2web.css">
+  <link rel="stylesheet" href="css/fontawesome-all.min.css">
+
+  <style>
+    html, body, #map {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <!-- JS dependências -->
+  <script src="js/leaflet.js"></script>
+  <script src="js/L.Control.Layers.Tree.min.js"></script>
+  <script src="js/qgis2web_expressions.js"></script>
+  <script src="js/leaflet.pattern.js"></script>
+  <script src="js/leaflet-hash.js"></script>
+  <script src="js/leaflet.rotatedMarker.js"></script>
+  <script src="js/rbush.min.js"></script>
+  <script src="js/labelgun.min.js"></script>
+  <script src="js/labels.js"></script>
+  <script src="js/Autolinker.min.js"></script>
+
+  <!-- Ortofoto -->
+  <script>
+    var ortofoto = L.tileLayer('tiles/{z}/{x}/{y}.png', {
+      tms: true,
+      opacity: 1,
+      minZoom: 16,
+      maxZoom: 21,
+      attribution: "Ortofoto"
+    });
+  </script>
+
+  <!-- Dados vetoriais -->
+  <script src="data/Arruamento_0.js"></script>
+  <script src="data/Setor_1.js"></script>
+  <script src="data/Quadra_2.js"></script>
+  <script src="data/Arruamento_3.js"></script>
+  <script src="data/quadra_Expansao_4.js"></script>
+  <script src="data/Chacaras_5.js"></script>
+
+  <script>
+    var map = L.map('map', {
+      center: [-12.6125, -48.2865],
+      zoom: 18,
+      layers: [ortofoto],
+      zoomControl: true
+    });
+
+    var bounds_group = new L.featureGroup([]);
+    var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+
+    // Criação das camadas
+    function createVectorLayer(dataVar, name, styleFunc, popupFunc, zIndex) {
+      var paneName = 'pane_' + name;
+      map.createPane(paneName);
+      map.getPane(paneName).style.zIndex = zIndex;
+      map.getPane(paneName).style['mix-blend-mode'] = 'normal';
+
+      var layer = new L.geoJson(window[dataVar], {
+        attribution: "",
+        interactive: true,
+        dataVar: dataVar,
+        layerName: name,
+        pane: paneName,
+        onEachFeature: popupFunc,
+        style: styleFunc
+      });
+
+      bounds_group.addLayer(layer);
+      return layer;
+    }
+
+    // Estilos e popups
+    function defaultPopup(field1, field2) {
+      return function(feature, layer) {
+        var popupContent = '<table>';
+        if (feature.properties[field1]) {
+          popupContent += '<tr><td><strong>' + field1 + '</strong></td><td>' + feature.properties[field1] + '</td></tr>';
+        }
+        if (feature.properties[field2]) {
+          popupContent += '<tr><td><strong>' + field2 + '</strong></td><td>' + feature.properties[field2] + '</td></tr>';
+        }
+        popupContent += '</table>';
+        layer.bindPopup(popupContent);
+      };
+    }
+
+    function styleDefault(color, fillColor) {
+      return function() {
+        return {
+          color: color,
+          weight: 1,
+          opacity: 1,
+          fillColor: fillColor,
+          fillOpacity: 0.3,
+          interactive: true
+        };
+      };
+    }
+
+    // Criar camadas
+    var layer_Arruamento_0 = createVectorLayer('json_Arruamento_0', 'Arruamento_0', styleDefault('#000000', '#ffffff'), defaultPopup('fid', 'nome'), 400);
+    var layer_Setor_1 = createVectorLayer('json_Setor_1', 'Setor_1', styleDefault('#999999', '#cccccc'), defaultPopup('cd_setor', 'nome'), 401);
+    var layer_Quadra_2 = createVectorLayer('json_Quadra_2', 'Quadra_2', styleDefault('#333333', '#9977bb'), defaultPopup('cd_quadra', 'cd_setor'), 402);
+    var layer_Arruamento_3 = createVectorLayer('json_Arruamento_3', 'Arruamento_3', styleDefault('#666666', '#ffffff'), defaultPopup('fid', 'nome'), 403);
+    var layer_quadra_Expansao_4 = createVectorLayer('json_quadra_Expansao_4', 'quadra_Expansao_4', styleDefault('#355e35', '#88cc88'), defaultPopup('cd_quadra', 'cd_setor'), 404);
+    var layer_Chacaras_5 = createVectorLayer('json_Chacaras_5', 'Chacaras_5', styleDefault('#555555', '#dddddd'), defaultPopup('Chacara', 'fid'), 405);
+
+    // Adicionar ao mapa
+    map.addLayer(layer_Arruamento_0);
+    map.addLayer(layer_Setor_1);
+    map.addLayer(layer_Quadra_2);
+    map.addLayer(layer_Arruamento_3);
+    map.addLayer(layer_quadra_Expansao_4);
+    map.addLayer(layer_Chacaras_5);
+
+    // Controle de camadas
+    var baseMaps = {
+      "Ortofoto": ortofoto
+    };
+
+    var overlayMaps = {
+      "Arruamento": layer_Arruamento_0,
+      "Setor": layer_Setor_1,
+      "Quadra": layer_Quadra_2,
+      "Arruamento (duplicado)": layer_Arruamento_3,
+      "Quadra Expansão": layer_quadra_Expansao_4,
+      "Chácaras": layer_Chacaras_5
+    };
+
+    L.control.layers(baseMaps, overlayMaps, {collapsed: false}).addTo(map);
+  </script>
+</body>
+</html>
